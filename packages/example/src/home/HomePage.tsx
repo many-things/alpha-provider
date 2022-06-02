@@ -1,5 +1,6 @@
 import { Web3Provider } from '@ethersproject/providers';
-import React, { useCallback } from 'react';
+import { MetaMaskInpageProvider } from '@metamask/providers';
+import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
 import Web3Modal from 'web3modal';
 
@@ -14,6 +15,11 @@ const HomePage = () => {
     },
   };
 
+  // Polygon Mainnet
+  const INTENDED_CHAIN_ID = 137;
+
+  const [account, setAccount] = useState<string>('');
+
   const onClick = useCallback(async () => {
     const web3Modal = new Web3Modal({
       network: 'mainnet', // optional
@@ -24,13 +30,26 @@ const HomePage = () => {
     const instance = await web3Modal.connect();
 
     const provider = new Web3Provider(instance);
-    const accounts = await provider.listAccounts();
-    window.alert(JSON.stringify(accounts));
+    const network = await provider.getNetwork();
+    const isIntendedChain = network.chainId === INTENDED_CHAIN_ID;
+    if (!isIntendedChain) {
+      const metamask = window.ethereum as MetaMaskInpageProvider;
+      await metamask.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${INTENDED_CHAIN_ID.toString(16)}` }],
+      });
+    }
+    const [account] = await provider.listAccounts();
+    setAccount(account);
   }, []);
 
   return (
     <Container>
-      <button onClick={onClick}>Connect Wallet</button>
+      {!!account ? (
+        <span>{account}</span>
+      ) : (
+        <button onClick={onClick}>Connect Wallet</button>
+      )}
     </Container>
   );
 };
