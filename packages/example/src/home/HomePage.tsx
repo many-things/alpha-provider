@@ -1,17 +1,28 @@
 import { Web3Provider } from '@ethersproject/providers';
 import { MetaMaskInpageProvider } from '@metamask/providers';
+import WalletConnectProvider from '@walletconnect/web3-provider';
 import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
-import Web3Modal from 'web3modal';
+import Web3Modal, { IProviderOptions } from 'web3modal';
 
 const HomePage = () => {
-  const providerOptions = {
+  const providerOptions: IProviderOptions = {
     injected: {
       display: {
         name: 'Metamask',
         description: 'Connect with MetaMask',
       },
       package: null,
+    },
+    walletconnect: {
+      display: {
+        name: 'WalletConnect',
+        description: 'Connect with WalletConnect',
+      },
+      package: WalletConnectProvider,
+      options: {
+        rpc: 'https://polygon-mainnet.g.alchemy.com/v2/imN2C_Q4OI2PsBLliailvM9QANUTz2_C',
+      },
     },
   };
 
@@ -22,12 +33,20 @@ const HomePage = () => {
 
   const onClick = useCallback(async () => {
     const web3Modal = new Web3Modal({
-      network: 'mainnet', // optional
-      cacheProvider: true, // optional
-      providerOptions, // required
+      network: 'mainnet',
+      cacheProvider: true,
+      providerOptions,
     });
 
-    const instance = await web3Modal.connect();
+    web3Modal.clearCachedProvider();
+    const instance = await web3Modal.connect().catch((error) => {
+      console.error(error);
+      return null;
+    });
+    if (!instance) {
+      // When `Error: User closed modal`
+      return;
+    }
 
     const provider = new Web3Provider(instance);
     const network = await provider.getNetwork();
